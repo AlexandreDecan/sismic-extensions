@@ -1,0 +1,75 @@
+statechart:
+  name: Elevator
+  preamble: |
+    current = 0
+    destination = 0
+    doors_open = True
+  root state:
+    name: active
+    contract:
+      - before: current == 0
+      - always: current >= 0  # Floor must be valid
+      - always: destination >= 0  # Selected floor must be valid
+    parallel states:
+      - name: movingElevator
+        initial: doorsOpen
+        states:
+          - name: doorsOpen
+            transitions:
+              - target: doorsClosed
+                guard: destination != current
+                action: doors_open = False
+              - target: doorsClosed
+                guard: after(10) and current > 0
+                action: |
+                  destination = 0
+                  doors_open = False
+                contract:
+                  - before: current > 0
+                  - after: destination == 0
+          - name: doorsClosed
+            transitions:
+              - target: movingUp
+                guard: destination > current
+              - target: movingDown
+                guard: destination < current and destination >= 0
+          - name: moving
+            contract:
+              - always: not doors_open  # Keep doors closed while moving
+              - before: destination != current  # Move only if destination is not reached
+              - after: destination == current  # Destination should be reached
+              - after: current != __old__.current  # Current changed (redundant given the two last conditions)
+            transitions:
+              - target: doorsOpen
+                guard: destination == current
+                action: doors_open = True
+                contract:
+                  - before: not doors_open  # Doors are closed
+                  - after: doors_open  # Doors are opened
+            states:
+              - name: movingUp
+                on entry: current = current + 1
+                contract:
+                  - before: current < destination  # Move up only if below
+                  - always: current <= destination  # Never go above destination
+                  - after: current > __old__.current  # Move up!
+                transitions:
+                  - target: movingUp
+                    guard: destination > current
+              - name: movingDown
+                contract:
+                  - before: current > destination  # Move down only if above
+                  - always: current >= destination  # Never go below destination
+                  - after: current < __old__.current  # Move down!
+                on entry: current = current - 1
+                transitions:
+                  - target: movingDown
+                    guard: destination < current
+      - name: floorListener
+        initial: floorSelecting
+        states:
+          - name: floorSelecting
+            transitions:
+              - target: floorSelecting
+                event: floorSelected
+                action: destination = event.floor
