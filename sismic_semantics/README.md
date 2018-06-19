@@ -4,7 +4,7 @@ This extension provides variations around the default interpreter of Sismic.
 In particular, it provides an outer-first/source-state semantics, and priority
 for transitions with event (in contrast with eventless transitions).
 
-This extension was built for Sismic 1.1.0.
+This extension was built for Sismic 1.2.1.
 
 This extension provides two classes, `OuterFirstInterpreter` and `EventFirstInterpreter`, that can also be combined together:
 
